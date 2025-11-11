@@ -68,22 +68,22 @@ fun ArcKeyboard(
                 val rect = Rect(cx - radiusPx, cy - radiusPx, cx + radiusPx, cy + radiusPx)
 
                 // draw 6 arcs of 60°; convert north=top to drawArc's 0°=3 o'clock
-                repeat(6) { i ->
-                    val northCenter = i * 60f
-                    val northStart = northCenter - 30f
-                    val drawStart = 90f - northStart
-                    val isHi = (i == highlightedIndex)
-
-                    drawArc(
-                        color = if (isHi) arcActive else arcIdle,
-                        startAngle = drawStart,
-                        sweepAngle = 60f,
-                        useCenter = false,
-                        style = Stroke(width = strokePx, cap = StrokeCap.Butt),
-                        topLeft = rect.topLeft,
-                        size = rect.size
-                    )
-                }
+//                repeat(6) { i ->
+//                    val northCenter = i * 60f
+//                    val northStart = northCenter - 30f
+//                    val drawStart = 90f - northStart
+//                    val isHi = (i == highlightedIndex)
+//
+//                    drawArc(
+//                        color = if (isHi) arcActive else arcIdle,
+//                        startAngle = drawStart,
+//                        sweepAngle = 60f,
+//                        useCenter = false,
+//                        style = Stroke(width = strokePx, cap = StrokeCap.Butt),
+//                        topLeft = rect.topLeft,
+//                        size = rect.size
+//                    )
+//                }
 
                 // pointer
                 val northDeg = Math.toDegrees(hoverAngleRad.toDouble()).toFloat()
@@ -95,8 +95,8 @@ fun ArcKeyboard(
             }
 
             // ---- labels: centered boxes placed on the ring ----
-            repeat(6) { i ->
-                val northCenterDeg = i * 60f
+            repeat(8) { i ->
+                val northCenterDeg = i * 45f
                 val drawDeg = 90f - northCenterDeg
                 val cx = sidePx / 2f
                 val cy = sidePx / 2f

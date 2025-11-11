@@ -96,6 +96,7 @@ fun WristFlickApp() {
         onDispose { classifier.stop(); classifier.onHoverAngle = null }
     }
 
+
     Scaffold(timeText = { TimeText() }) {
         // 1) Safe-area padding (system/time text)
         val safe = WindowInsets.safeDrawing.asPaddingValues()
@@ -126,6 +127,14 @@ fun WristFlickApp() {
                 .onFocusChanged { if (!it.isFocused) focusRequester.requestFocus() }
                 .clickable { commitCurrentWord() }
         ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip(onClick = { classifier.calibrateNorth() },
+                    label = { Text("Calibrate") })
+                if (candidates.isNotEmpty()) {
+                    Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -146,9 +155,9 @@ fun WristFlickApp() {
                     hoverAngleRad = hoverAngle,
                     highlightedIndex = hiIndex,
                     groups = ArcDecoder.groups(),
-                    centerPreview = candidates.getOrNull(selectedIndex)
-                        ?: ArcDecoder.groupForArcIndex(hiIndex),
-                    ringThickness = 12.dp,
+                    centerPreview = candidates.getOrNull(selectedIndex),
+//                        ?: ArcDecoder.groupForArcIndex(hiIndex),
+                    ringThickness = -1.dp,
                     labelBox = 44.dp,
                     labelNudgeX = (-55).dp,   // move left (negative), right (positive)
                     labelNudgeY= (-55).dp    // move up (negative), down (positive)

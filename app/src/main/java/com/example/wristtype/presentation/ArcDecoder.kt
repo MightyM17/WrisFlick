@@ -1,45 +1,40 @@
-package com.example.wristtype.presentation
-
 object ArcDecoder {
-    // 6 large groups (tweak later to optimize)
-    private val arcGroups = listOf(
-        "ABCDE", "FGHIJ", "KLMN", "OPQR", "STUV", "WXYZ"
+    // 8 groups in T9 order (2..9)
+    private val octGroups = listOf(
+        "ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ"
     )
 
-    fun groups(): List<String> = arcGroups
+    fun groups(): List<String> = octGroups
 
-    // Convert hover angle (radians; 0 = North, +clockwise) to arc index 0..5
+    // Angle → octant index (0..7). 0° = North. Each slice = 45°.
     fun arcIndexForAngle(rad: Float): Int {
         val deg = ((Math.toDegrees(rad.toDouble()) + 360.0) % 360.0).toFloat()
-        return (((deg + 30f) / 60f).toInt()) % 6
+        return (((deg + 22.5f) / 45f).toInt()) % 8
     }
 
-    fun tokenForArcIndex(i: Int): String =
-        ('A'.code + (i.coerceIn(0, 5))).toChar().toString()
+    // Token we store per slice: 'A'..'H'
+    fun tokenForArcIndex(i: Int): String = ('A'.code + i.coerceIn(0,7)).toChar().toString()
 
-    fun groupForArcIndex(i: Int): String = arcGroups[i.coerceIn(0, 5)]
+    private fun groupForToken(ch: Char): String = octGroups[(ch - 'A').coerceIn(0,7)]
 
-    fun expand(code: String): String =
-        code.map { ch ->
-            val idx = (ch - 'A').coerceIn(0, 5)
-            groupForArcIndex(idx).first()
-        }.joinToString("")
+    // Fallback expansion (first letter of each chosen group)
+    fun expand(code: String): String = code.map { groupForToken(it).first() }.joinToString("")
 
-    // TEMP tiny lexicon — replace with real dictionary later
+    // Tiny lexicon placeholder
     private val toyLexicon = listOf(
-        "hello","help","held","you","your","yours",
-        "watch","wear","wrist","text","type","typing","time",
-        "smart","study","speed","space","south","north"
+        "you","your","yours","hello","help","watch","wear","wrist","text","type",
+        "time","study","speed","smart","north","south","test","tune","quick","java","kotlin"
     )
 
     fun candidatesFor(code: String): List<String> {
         if (code.isEmpty()) return emptyList()
-        return toyLexicon.filter { w ->
+        val ok = toyLexicon.filter { w ->
             if (w.length < code.length) return@filter false
             code.indices.all { i ->
-                val idx = (code[i] - 'A').coerceIn(0, 5)
-                w[i].uppercaseChar() in groupForArcIndex(idx)
+                val g = groupForToken(code[i])
+                w[i].uppercaseChar() in g
             }
-        }.take(8).ifEmpty { listOf(expand(code)) }
+        }
+        return ok.take(8).ifEmpty { listOf(expand(code)) }
     }
 }
