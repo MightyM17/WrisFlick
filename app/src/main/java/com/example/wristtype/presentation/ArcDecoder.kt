@@ -1,24 +1,31 @@
 object ArcDecoder {
     // 8 groups in T9 order (2..9)
-    private val octGroups = listOf(
-        "ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ"
+    private val groups4 = listOf(
+        "ABCDEF",   // UP
+        "GHIJKL",   // RIGHT
+        "MNOPQR",   // DOWN
+        "STUVWXYZ"  // LEFT
     )
 
-    fun groups(): List<String> = octGroups
+    fun groups(): List<String> = groups4
 
-    // Angle → octant index (0..7). 0° = North. Each slice = 45°.
     fun arcIndexForAngle(rad: Float): Int {
         val deg = ((Math.toDegrees(rad.toDouble()) + 360.0) % 360.0).toFloat()
-        return (((deg + 22.5f) / 45f).toInt()) % 8
+        // 0° (UP), 90° (RIGHT), 180° (DOWN), 270° (LEFT)
+        return when {
+            deg < 45f || deg >= 315f -> 0        // UP
+            deg < 135f               -> 1        // RIGHT
+            deg < 225f               -> 2        // DOWN
+            else                     -> 3        // LEFT
+        }
     }
 
-    // Token we store per slice: 'A'..'H'
-    fun tokenForArcIndex(i: Int): String = ('A'.code + i.coerceIn(0,7)).toChar().toString()
+    fun tokenForArcIndex(i: Int): String = ('A'.code + i.coerceIn(0, 3)).toChar().toString()
 
-    private fun groupForToken(ch: Char): String = octGroups[(ch - 'A').coerceIn(0,7)]
+    private fun groupForToken(ch: Char): String = groups4[(ch - 'A').coerceIn(0, 3)]
 
-    // Fallback expansion (first letter of each chosen group)
-    fun expand(code: String): String = code.map { groupForToken(it).first() }.joinToString("")
+    fun expand(code: String): String =
+        code.map { groupForToken(it).first() }.joinToString("")
 
     // Tiny lexicon placeholder
     private val toyLexicon = listOf(

@@ -74,19 +74,13 @@ fun WristFlickApp() {
     DisposableEffect(Unit) {
         classifier.onHoverAngle = { ang ->
             hoverAngle = ang
-            hiIndex = ArcDecoder.arcIndexForAngle(ang)
+            hiIndex = ArcDecoder.arcIndexForAngle(ang)  // 0..3
         }
         classifier.start { dir ->
             when (dir) {
-                Direction.SHAKE -> {
-                    val parts = typed.trimEnd().split(" ")
-                    typed = parts.dropLast(1).joinToString(" ")
-                    codeBuffer = ""; candidates = emptyList(); selectedIndex = 0
-                }
-                Direction.CENTER -> { /* idle */ }
-                else -> {
-                    // Flick selects current highlighted arc
-                    val token = ArcDecoder.tokenForArcIndex(hiIndex) // "A".."F"
+                Direction.SHAKE -> { /* delete last word */ }
+                Direction.CENTER -> {
+                    val token = ArcDecoder.tokenForArcIndex(hiIndex)
                     codeBuffer += token
                     candidates = ArcDecoder.candidatesFor(codeBuffer)
                     selectedIndex = 0
@@ -128,12 +122,11 @@ fun WristFlickApp() {
                 .clickable { commitCurrentWord() }
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip(onClick = { classifier.calibrateNorth() },
-                    label = { Text("Calibrate") })
                 if (candidates.isNotEmpty()) {
                     Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
                 }
             }
+            Chip(onClick = { classifier.calibrateNorth() }, label = { Text("Calibrate") })
 
             Column(
                 modifier = Modifier

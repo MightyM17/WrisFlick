@@ -44,6 +44,8 @@ fun ArcKeyboard(
     val labelLo   = onBg.copy(alpha = 0.6f)
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        val maxWidth = this.maxWidth;
+        val maxHeight = this.maxHeight;
         // make a perfect square from the smaller dimension
         val sidePx = min(constraints.maxWidth, constraints.maxHeight).toFloat()
         val sideDp = with(LocalDensity.current) { sidePx.toDp() }
@@ -67,24 +69,6 @@ fun ArcKeyboard(
                 val cy = size.height / 2f
                 val rect = Rect(cx - radiusPx, cy - radiusPx, cx + radiusPx, cy + radiusPx)
 
-                // draw 6 arcs of 60°; convert north=top to drawArc's 0°=3 o'clock
-//                repeat(6) { i ->
-//                    val northCenter = i * 60f
-//                    val northStart = northCenter - 30f
-//                    val drawStart = 90f - northStart
-//                    val isHi = (i == highlightedIndex)
-//
-//                    drawArc(
-//                        color = if (isHi) arcActive else arcIdle,
-//                        startAngle = drawStart,
-//                        sweepAngle = 60f,
-//                        useCenter = false,
-//                        style = Stroke(width = strokePx, cap = StrokeCap.Butt),
-//                        topLeft = rect.topLeft,
-//                        size = rect.size
-//                    )
-//                }
-
                 // pointer
                 val northDeg = Math.toDegrees(hoverAngleRad.toDouble()).toFloat()
                 val drawDeg = 90f - northDeg
@@ -95,8 +79,8 @@ fun ArcKeyboard(
             }
 
             // ---- labels: centered boxes placed on the ring ----
-            repeat(8) { i ->
-                val northCenterDeg = i * 45f
+            repeat(4) { i ->
+                val northCenterDeg = i * 90f
                 val drawDeg = 90f - northCenterDeg
                 val cx = sidePx / 2f
                 val cy = sidePx / 2f
