@@ -58,22 +58,25 @@ fun WristFlickApp() {
 
     // Hover (pointer) state
     var hoverAngle by remember { mutableStateOf(0f) }    // radians, 0 = North
-    var hiIndex by remember { mutableIntStateOf(0) }     // 0..3 (4 directions)
+    var hiIndex by remember { mutableIntStateOf(0) }     // 0..3
 
     // Focus to receive rotary events
     val focusRequester = remember { FocusRequester() }
 
-    // NEW: has the user calibrated yet?
+    // Has the user calibrated yet?
     var calibrated by remember { mutableStateOf(false) }
 
     fun commitCurrentWord() {
         if (codeBuffer.isEmpty() && candidates.isEmpty()) return
+        // PREDICTED word = candidate if present, else simple expand
         val commit = candidates.getOrNull(selectedIndex) ?: ArcDecoder.expand(codeBuffer)
         typed += (if (typed.isEmpty()) "" else " ") + commit
-        codeBuffer = ""; candidates = emptyList(); selectedIndex = 0
+        codeBuffer = ""
+        candidates = emptyList()
+        selectedIndex = 0
     }
 
-    // SINGLE effect: wire hover + start sensor stream + handle select/delete
+    // Wire hover + start sensor stream + handle select/delete
     DisposableEffect(Unit) {
         classifier.onHoverAngle = { ang ->
             hoverAngle = ang
@@ -90,7 +93,7 @@ fun WristFlickApp() {
                     selectedIndex = 0
                 }
                 Direction.CENTER -> {
-                    // select current direction
+                    // select current direction (add one “key”)
                     val token = ArcDecoder.tokenForArcIndex(hiIndex)
                     codeBuffer += token
                     candidates = ArcDecoder.candidatesFor(codeBuffer)
@@ -122,34 +125,59 @@ fun WristFlickApp() {
                     .padding(safe)
                     .padding(radial)
                     .clickable {
-                        // Tap anywhere to calibrate and move to main UI
                         classifier.calibrateNorth()
                         calibrated = true
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "WristFlick setup",
                         style = MaterialTheme.typography.title3.copy(fontWeight = FontWeight.SemiBold)
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Hold your wrist in a comfortable typing pose\nthen tap to calibrate.",
+                        text = "Hold your wrist in a comfy pose,\nthen tap to calibrate.",
                         style = MaterialTheme.typography.caption2
                     )
                 }
             }
         } else {
             // -------- MAIN WRISTFLICK UI --------
+
+            // 1) "Actually typed" = deterministic expansion of the code (letters like GAGGM)
+            val rawTyped = if (codeBuffer.isNotEmpty()) ArcDecoder.expand(codeBuffer) else ""
+
+            // 2) Predicted word = top candidate if any, else fall back to rawTyped
+            val predicted = when {
+                candidates.isNotEmpty() -> {
+                    val idx = selectedIndex.coerceIn(0, candidates.lastIndex)
+                    candidates[idx]
+                }
+                codeBuffer.isNotEmpty() -> rawTyped
+                else -> ""
+            }
+
+            // 3) Center preview in the format:
+            //
+            //    hello
+            //    [GAGGM]
+            //
+            val centerPreview =
+                if (rawTyped.isNotEmpty() || predicted.isNotEmpty()) {
+                    val top = if (predicted.isNotEmpty()) predicted else rawTyped
+                    val bottom = if (rawTyped.isNotEmpty()) "[${rawTyped}]" else ""
+                    if (bottom.isNotEmpty()) "$top\n$bottom" else top
+                } else {
+                    ""
+                }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(MaterialTheme.colors.background)
-                    .padding(safe)      // safe-area first
-                    .padding(radial)    // then round-edge cushion
+                    .padding(safe)
+                    .padding(radial)
                     .onRotaryScrollEvent { event ->
                         if (candidates.isNotEmpty()) {
                             val delta = if (event.verticalScrollPixels > 0) 1 else -1
@@ -159,47 +187,39 @@ fun WristFlickApp() {
                     }
                     .focusRequester(focusRequester)
                     .onFocusChanged { if (!it.isFocused) focusRequester.requestFocus() }
-                    .clickable { commitCurrentWord() }   // tap anywhere to commit
+                    .clickable { commitCurrentWord() }   // tap anywhere to commit current word
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(8.dp), // small inner breathing room for text & chips
+                        .padding(8.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Already committed text
                     Text(
                         text = typed,
                         style = MaterialTheme.typography.title3.copy(fontWeight = FontWeight.SemiBold)
                     )
 
+                    // Ring keyboard + center preview of predicted + code
                     ArcKeyboard(
                         modifier = Modifier.size(232.dp),
                         hoverAngleRad = hoverAngle,
                         highlightedIndex = hiIndex,
                         groups = ArcDecoder.groups(),
-                        centerPreview = candidates.getOrNull(selectedIndex),
+                        centerPreview = centerPreview,
                         ringThickness = -1.dp,
                         labelBox = 44.dp,
                         labelNudgeX = (-55).dp,
                         labelNudgeY = (-55).dp
                     )
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "buffer: $codeBuffer", style = MaterialTheme.typography.caption2)
-                        Spacer(Modifier.height(6.dp))
-                        if (candidates.isNotEmpty()) {
-                            ChipCarousel(candidates, selectedIndex)
-                            Spacer(Modifier.height(8.dp))
-                            // Commit chip kept as a second option; remove if you don't want it at all:
-                            // Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
-                        } else {
-                            Text(
-                                "point → move wrist • bezel → cycle • tap → commit • shake → delete",
-                                style = MaterialTheme.typography.caption2
-                            )
-                        }
-                    }
+                    // Tiny hint only (to not push things off-screen)
+                    Text(
+                        text = "tilt = group • clench = key • bezel = next • tap = commit • shake = delete",
+                        style = MaterialTheme.typography.caption2
+                    )
                 }
             }
         }

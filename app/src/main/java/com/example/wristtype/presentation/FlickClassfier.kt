@@ -65,8 +65,8 @@ class FlickClassifier(private val context: Context) : SensorEventListener {
     private var clenchCooldownUntil = 0L
 
     // thresholds (tune based on feel)
-    private val CLENCH_START_THRESH = 14f        // ~1.4 g: start clench window
-    private val CLENCH_PEAK_THRESH  = 17f        // ~1.7 g: consider it a real clench
+    private val CLENCH_START_THRESH = 10f        // ~1.4 g: start clench window
+    private val CLENCH_PEAK_THRESH  = 14f        // ~1.7 g: consider it a real clench
     private val CLENCH_WINDOW_NS    = 150_000_000L // 150 ms
     private val CLENCH_COOLDOWN_NS  = 300_000_000L // 300 ms between clench events
 
