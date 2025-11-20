@@ -72,7 +72,7 @@ class FlickClassifier(private val context: Context) : SensorEventListener {
 
     // Shake-to-delete (stronger / repeated movement)
     private var shakeEnergy = 0f
-    private val SHAKE_ACCEL_THRESH = 24f    // ~2.4 g
+    private val SHAKE_ACCEL_THRESH = 16f    // ~2.4 g
     private val SHAKE_ENERGY_THRESH = 18f   // integrated energy threshold
 
     private fun fire(dir: Direction) {

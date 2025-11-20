@@ -58,10 +58,13 @@ fun WristFlickApp() {
 
     // Hover (pointer) state
     var hoverAngle by remember { mutableStateOf(0f) }    // radians, 0 = North
-    var hiIndex by remember { mutableIntStateOf(0) }     // 0..5
+    var hiIndex by remember { mutableIntStateOf(0) }     // 0..3 (4 directions)
 
     // Focus to receive rotary events
     val focusRequester = remember { FocusRequester() }
+
+    // NEW: has the user calibrated yet?
+    var calibrated by remember { mutableStateOf(false) }
 
     fun commitCurrentWord() {
         if (codeBuffer.isEmpty() && candidates.isEmpty()) return
@@ -70,7 +73,7 @@ fun WristFlickApp() {
         codeBuffer = ""; candidates = emptyList(); selectedIndex = 0
     }
 
-    // SINGLE effect: wire hover + start sensor stream + handle flicks
+    // SINGLE effect: wire hover + start sensor stream + handle select/delete
     DisposableEffect(Unit) {
         classifier.onHoverAngle = { ang ->
             hoverAngle = ang
@@ -78,8 +81,16 @@ fun WristFlickApp() {
         }
         classifier.start { dir ->
             when (dir) {
-                Direction.SHAKE -> { /* delete last word */ }
+                Direction.SHAKE -> {
+                    // delete last word
+                    val parts = typed.trimEnd().split(" ")
+                    typed = parts.dropLast(1).joinToString(" ")
+                    codeBuffer = ""
+                    candidates = emptyList()
+                    selectedIndex = 0
+                }
                 Direction.CENTER -> {
+                    // select current direction
                     val token = ArcDecoder.tokenForArcIndex(hiIndex)
                     codeBuffer += token
                     candidates = ArcDecoder.candidatesFor(codeBuffer)
@@ -90,7 +101,6 @@ fun WristFlickApp() {
         onDispose { classifier.stop(); classifier.onHoverAngle = null }
     }
 
-
     Scaffold(timeText = { TimeText() }) {
         // 1) Safe-area padding (system/time text)
         val safe = WindowInsets.safeDrawing.asPaddingValues()
@@ -98,77 +108,97 @@ fun WristFlickApp() {
         // 2) Extra radial padding for round screens (GW4 Classic is round)
         val isRound = LocalConfiguration.current.isScreenRound
         val radial = if (isRound) {
-            // tuned for 46mm: keeps the ring + chips comfortably inside the circle
             PaddingValues(horizontal = 18.dp, vertical = 12.dp)
         } else {
             PaddingValues(horizontal = 8.dp, vertical = 8.dp)
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colors.background)
-                .padding(safe)      // safe-area first
-                .padding(radial)    // then round-edge cushion
-                .onRotaryScrollEvent { event ->
-                    if (candidates.isNotEmpty()) {
-                        val delta = if (event.verticalScrollPixels > 0) 1 else -1
-                        selectedIndex = (selectedIndex + delta).mod(candidates.size)
-                        true
-                    } else false
-                }
-                .focusRequester(focusRequester)
-                .onFocusChanged { if (!it.isFocused) focusRequester.requestFocus() }
-                .clickable { commitCurrentWord() }
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (candidates.isNotEmpty()) {
-                    Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
-                }
-            }
-            Chip(onClick = { classifier.calibrateNorth() }, label = { Text("Calibrate") })
-
-            Column(
+        if (!calibrated) {
+            // -------- FIRST SCREEN: CALIBRATION --------
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp), // small inner breathing room for text & chips
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(MaterialTheme.colors.background)
+                    .padding(safe)
+                    .padding(radial)
+                    .clickable {
+                        // Tap anywhere to calibrate and move to main UI
+                        classifier.calibrateNorth()
+                        calibrated = true
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = typed,
-                    style = MaterialTheme.typography.title3.copy(fontWeight = FontWeight.SemiBold)
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "WristFlick setup",
+                        style = MaterialTheme.typography.title3.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Hold your wrist in a comfortable typing pose\nthen tap to calibrate.",
+                        style = MaterialTheme.typography.caption2
+                    )
+                }
+            }
+        } else {
+            // -------- MAIN WRISTFLICK UI --------
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colors.background)
+                    .padding(safe)      // safe-area first
+                    .padding(radial)    // then round-edge cushion
+                    .onRotaryScrollEvent { event ->
+                        if (candidates.isNotEmpty()) {
+                            val delta = if (event.verticalScrollPixels > 0) 1 else -1
+                            selectedIndex = (selectedIndex + delta).mod(candidates.size)
+                            true
+                        } else false
+                    }
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { if (!it.isFocused) focusRequester.requestFocus() }
+                    .clickable { commitCurrentWord() }   // tap anywhere to commit
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp), // small inner breathing room for text & chips
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = typed,
+                        style = MaterialTheme.typography.title3.copy(fontWeight = FontWeight.SemiBold)
+                    )
 
-                // Keep the ring comfortably inside after radial padding
-                // A 240–260dp square fits GW4 Classic well after padding.
-                // If you still see clipping, try 240.dp; if it looks tiny, try 268.dp.
-                ArcKeyboard(
-                    modifier = Modifier.size(232.dp),  // 224–240.dp fits GW4 Classic 46mm well
-                    hoverAngleRad = hoverAngle,
-                    highlightedIndex = hiIndex,
-                    groups = ArcDecoder.groups(),
-                    centerPreview = candidates.getOrNull(selectedIndex),
-//                        ?: ArcDecoder.groupForArcIndex(hiIndex),
-                    ringThickness = -1.dp,
-                    labelBox = 44.dp,
-                    labelNudgeX = (-55).dp,   // move left (negative), right (positive)
-                    labelNudgeY= (-55).dp    // move up (negative), down (positive)
+                    ArcKeyboard(
+                        modifier = Modifier.size(232.dp),
+                        hoverAngleRad = hoverAngle,
+                        highlightedIndex = hiIndex,
+                        groups = ArcDecoder.groups(),
+                        centerPreview = candidates.getOrNull(selectedIndex),
+                        ringThickness = -1.dp,
+                        labelBox = 44.dp,
+                        labelNudgeX = (-55).dp,
+                        labelNudgeY = (-55).dp
+                    )
 
-                )
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "buffer: $codeBuffer", style = MaterialTheme.typography.caption2)
-                    Spacer(Modifier.height(6.dp))
-                    if (candidates.isNotEmpty()) {
-                        ChipCarousel(candidates, selectedIndex)
-                        Spacer(Modifier.height(8.dp))
-                        Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
-                    } else {
-                        Text(
-                            "point → flick • bezel → cycle • tap → commit • shake → delete",
-                            style = MaterialTheme.typography.caption2
-                        )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "buffer: $codeBuffer", style = MaterialTheme.typography.caption2)
+                        Spacer(Modifier.height(6.dp))
+                        if (candidates.isNotEmpty()) {
+                            ChipCarousel(candidates, selectedIndex)
+                            Spacer(Modifier.height(8.dp))
+                            // Commit chip kept as a second option; remove if you don't want it at all:
+                            // Chip(onClick = { commitCurrentWord() }, label = { Text("Commit") })
+                        } else {
+                            Text(
+                                "point → move wrist • bezel → cycle • tap → commit • shake → delete",
+                                style = MaterialTheme.typography.caption2
+                            )
+                        }
                     }
                 }
             }
