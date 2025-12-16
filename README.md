@@ -1,4 +1,4 @@
-# WristType (WrisText-inspired) — Directional Palm Typing on Galaxy Watch
+# WrisFlick
 
 WristType is a research prototype for **one-handed text entry on a round smartwatch** (tested on **Galaxy Watch 4 Classic**) that maps **simple wrist/palm directional movement** into **4 character groups**. A circular on-screen ring highlights the currently targeted group, and the UI shows both:
 
