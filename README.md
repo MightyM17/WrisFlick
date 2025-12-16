@@ -16,11 +16,6 @@ This project is inspired by prior smartwatch text-entry work (e.g., **WrisText**
   **predicted**  
   **[raw typed]**
 
-> Add your screenshots / gifs here:
-- `docs/ui_ring.png`
-- `docs/calibration.png`
-- `docs/survey.png`
-
 ---
 
 ## How it works (high level)
@@ -93,7 +88,7 @@ This project is inspired by prior smartwatch text-entry work (e.g., **WrisText**
 ### Requirements
 - Android Studio (latest stable)
 - Wear OS tooling installed
-- A Wear OS device (Galaxy Watch 4 Classic recommended) or emulator
+- A Wear OS device (Galaxy Watch 4 Classic recommended)
 
 ### Run
 1. Open the project in Android Studio.
@@ -115,7 +110,6 @@ This project is inspired by prior smartwatch text-entry work (e.g., **WrisText**
 ## Known limitations (prototype)
 - Direction sensing can vary across users and strap tightness.
 - Extreme directions (especially LEFT) may be less comfortable for some users.
-- Candidate prediction is minimal unless you plug in a dictionary/language model.
 - Sensor noise and drift can affect long sessions without recalibration.
 
 ---
@@ -125,16 +119,3 @@ This project is inspired by prior smartwatch text-entry work (e.g., **WrisText**
 - Adaptive per-user calibration (gain + dead-zone tuning)
 - Lightweight on-device language model / dictionary candidates
 - Longer study with logging + repeat sessions to measure learning effects
-
----
-
-## References (starter)
-- MacKenzie, I. S. “Methods for Evaluating Text Entry Techniques.” TOCHI, 2002.
-- Hart & Staveland. NASA-TLX. 1988.
-- Smartwatch text-entry surveys + WrisText-style gesture typing work (to be added in paper bibliography).
-
----
-
-## License
-Prototype code for academic / course use. Add a LICENSE file if you plan to share publicly.
-
